@@ -44,4 +44,12 @@ Full CRUD cycle (Create, Read, Update, Delete) against [JSONPlaceholder](https:/
 2. Run individual requests or a whole collection with the Collection Runner
 3. Check the **Test Results** tab after each request
 
+### Quick import (no download needed)
+
+Paste any of these raw URLs into Postman's Import dialog (or drag-and-drop the link):
+
+- **Countries**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/Countries.postman_collection.json`
+- **Weather**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/Weather.postman_collection.json`
+- **Posts CRUD**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/Posts-CRUD.postman_collection.json`
+
 ---
