@@ -28,6 +28,14 @@ Full CRUD cycle (Create, Read, Update, Delete) against [JSONPlaceholder](https:/
 - **Update Post** — `PUT /posts/1` with an updated JSON body. Tests: status code is 200, title was updated.
 - **DELETE Post** — `DELETE /posts/1`. Tests: status code is 200, response body is empty.
 
+### 🎬 TMDB-Auth-Practice.postman_collection.json
+
+Requests against The Movie Database (TMDB), a real-world API that requires authentication, used to practice different authentication patterns and validate both authorized and unauthorized responses.
+
+- **Popular Movies - NO AUTH** — `GET /movie/popular`, sent with no authorization. Test: status code is 401 (confirms the API correctly rejects unauthenticated requests).
+- **Popular Movies** — `GET /movie/popular`, sent with a Bearer Token (API Read Access Token) in the Authorization header. Test: status code is 200.
+- **Popular Movies - API Key v3** — `GET /movie/popular`, sent with the API Key as a query parameter (`?api_key=...`), demonstrating an alternative authentication pattern. Tests: status code is 200; every movie in the response has an `original_language` field; at least one movie's `original_language` is Spanish (`es`).
+
 ## Tools & concepts practiced
 
 - Writing `pm.test()` assertions in Postman (status codes, property checks, type checks, value checks)
