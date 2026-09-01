@@ -1,0 +1,186 @@
+{
+  "info": {
+    "_postman_id": "3ea41cbe-72ef-43a9-ba2f-278582574973",
+    "name": "TMDB Auth Practice",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36547771"
+  },
+  "item": [
+    {
+      "name": "Popular Movies - NO AUTH",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 401\", function () {\r",
+              "    pm.response.to.have.status(401);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.themoviedb.org/3/movie/popular",
+          "protocol": "https",
+          "host": [
+            "api",
+            "themoviedb",
+            "org"
+          ],
+          "path": [
+            "3",
+            "movie",
+            "popular"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Popular Movies",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status Code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzOTZiOGE1NDQ5MmM5YjUzZTkxODIyYWU5ZTEzNTc1OCIsIm5iZiI6MTc4NzkwNzk0OS4zODQsInN1YiI6IjZhOTE0ZjZkZTg2OTQwNTE3NmY3ZTMxNiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.cRv87fN8p4k0uERORPpogTZ0JpuSuP4gTWnwrfYRobQ",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.themoviedb.org/3/movie/popular",
+          "protocol": "https",
+          "host": [
+            "api",
+            "themoviedb",
+            "org"
+          ],
+          "path": [
+            "3",
+            "movie",
+            "popular"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Popular Movies - API Key v3'",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"First movie has original_language field\", () => { \r",
+              "    const originalLan = pm.response.json(); \r",
+              "    pm.expect(originalLan.results[0]).to.have.property(\"original_language\"); \r",
+              "});\r",
+              "\r",
+              "pm.test(\"All movies have property original_language\", function () {\r",
+              "    const original_language_all = pm.response.json();\r",
+              "    original_language_all.results.forEach(movie => {\r",
+              "        pm.expect(movie).to.have.property(\"original_language\");\r",
+              "    });\r",
+              "});\r",
+              "\r",
+              "pm.test(\"There are movies which original_language is Spanish\", function () {\r",
+              "    const original_language_ES = pm.response.json();\r",
+              "    const spanishMovies = original_language_ES.results.filter(movie => movie.original_language === \"es\");\r",
+              "    console.log(\"Número de películas en español: \", spanishMovies.length);\r",
+              "    pm.expect(spanishMovies.length).to.be.above(0);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://api.themoviedb.org/3/movie/popular?api_key=396b8a54492c9b53e91822ae9e135758",
+          "protocol": "https",
+          "host": [
+            "api",
+            "themoviedb",
+            "org"
+          ],
+          "path": [
+            "3",
+            "movie",
+            "popular"
+          ],
+          "query": [
+            {
+              "key": "api_key",
+              "value": "396b8a54492c9b53e91822ae9e135758"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "tmdb_token",
+      "value": ""
+    }
+  ]
+}
