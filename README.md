@@ -48,7 +48,7 @@ Requests against The Movie Database (TMDB), a real-world API that requires authe
 
 ## How to use
 
-1. Import any of the three `.json` files into Postman (**File → Import**)
+1. Import any of the four `.json` files into Postman (File → Import)
 2. Run individual requests or a whole collection with the Collection Runner
 3. Check the **Test Results** tab after each request
 
@@ -59,5 +59,6 @@ Paste any of these raw URLs into Postman's Import dialog (or drag-and-drop the l
 - **Countries**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/Countries.postman_collection.json`
 - **Weather**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/Weather.postman_collection.json`
 - **Posts CRUD**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/Posts-CRUD.postman_collection.json`
+- **TMDB Auth Practice**: `https://raw.githubusercontent.com/JorgeCeldran/postman-qa/refs/heads/main/TMDB-Auth-Practice.postman_collection.json`
 
 ---
