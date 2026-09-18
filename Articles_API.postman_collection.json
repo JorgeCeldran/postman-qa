@@ -1,0 +1,808 @@
+{
+  "info": {
+    "_postman_id": "7eef3a04-a73e-4104-9985-ed65f7ae5592",
+    "name": "Articles_API",
+    "description": "# Articles_API\n\nColección de Postman para practicar y demostrar testing de APIs REST, construida contra [GoRest](https://gorest.co.in), una API pública gratuita de testing/prototipado.\n\n## Qué cubre\n\n- **CRUD completo** sobre el recurso `posts` (carpeta `Articles`): crear, leer, actualizar, borrar, y verificación real del borrado con una segunda consulta.\n    \n- **Lecturas y filtrado** sobre el recurso `users` (carpeta `Users`): lectura simple, lectura por ID, casos negativos (404), y filtrado por query params (género, nombre, combinados).\n    \n\n## Variables de entorno necesarias\n\n| Variable | Descripción |\n| --- | --- |\n| `base_url` | `https://gorest.co.in/public/v2` |\n| `token` | Access Token personal de GoRest (Bearer Token) |\n| `post_id` | Se actualiza automáticamente al crear un artículo |\n| `user_id` | Se actualiza automáticamente al listar usuarios |\n| `gender` | Valor usado en los requests de filtrado por género (`male` / `female`) |\n| `letter` | Letra usada para filtrar usuarios por nombre en `Get_Users_By_Gender_And_Name` (ej. `M`) |\n| `length` | Número máximo de resultados a devolver (`per_page`) en `Get_Users_By_Gender_And_Name` |\n\n## Hallazgos importantes sobre la API\n\n1. **Token también en GET:** los recursos recién creados o modificados no son accesibles vía GET sin token durante un tiempo, aunque el endpoint sea \"público\" en condiciones normales.\n    \n2. **Filtrado por** **`name`** **es parcial, no por prefijo:** el parámetro `name` en `/users` busca coincidencias que _contienen_ el texto, no que _empiezan por_ él (ej. buscar `name=M` devuelve también \"Shakuntala Mehrotra\", no solo nombres que empiezan por M). Esto está verificado con un test que falla intencionadamente para demostrarlo (`Get_Users_By_Gender_And_Name`).\n    \n\n## Cómo usarlo\n\n1. Importa la colección y el Environment.\n    \n2. Genera tu Access Token en gorest.co.in y añádelo a la variable `token`.\n    \n3. Activa el Environment `Articles_API`.\n    \n4. Ejecuta las requests en orden dentro de `Articles` para ver el flujo Create → Read → Update → Delete.\n    \n\n## Extensión: generación dinámica de datos (`Articles_Dynamic`)\n\nCarpeta separada, aislada del flujo principal de `Articles`, donde se demuestra un nivel más avanzado de generación de datos:\n\n- **`user_id`** **dinámico:** en vez de usar un ID fijo, un script en _Pre-request_ llama a `GET /users` mediante `pm.sendRequest()`, y elige al azar un usuario real de la respuesta antes de crear el artículo. Postman espera automáticamente a que este callback termine antes de enviar la request principal, así que no hace falta manejar la asincronía manualmente.\n    \n- **`title`** **y** **`body`** **aleatorios:** generados con variables dinámicas nativas de Postman (`{{$randomCatchPhrase}}`, `{{$randomLoremParagraph}}`), distintos en cada ejecución.\n    \n- **Comparación robusta:** los tests siguen validando la respuesta contra `pm.request.body.raw`, en vez de contra texto fijo, igual que en el resto de la colección — así el test es válido sin importar qué datos aleatorios se generaron esa vez.\n    \n- Usa sus propias variables (`dynamic_user_id`, `dynamic_post_id`) para no interferir con el flujo principal de `Articles` ni con el Collection Runner.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36547771",
+    "_collection_link": "https://go.postman.co/collection/36547771-7eef3a04-a73e-4104-9985-ed65f7ae5592?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Articles",
+      "item": [
+        {
+          "name": "Get_All_Articles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response time is less than 2000ms\", function () {\r",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response is an array\", function () {\r",
+                  "    pm.expect(pm.response.json()).to.be.an('array');\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"First article contains correct fields: id, user_id, title, body\", function () {\r",
+                  "    pm.expect(pm.response.json()[0]).to.have.all.keys('id', 'user_id', 'title', 'body');\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Article ID is a number\", function () {\r",
+                  "    pm.expect(pm.response.json()[0].id).to.be.a('number');\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "packages": {},
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/posts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            },
+            "description": "Devuelve todos los artículos (`posts`) públicos. No requiere token. Verifica status, tiempo de respuesta, que el array no esté vacío y que cada elemento tenga los campos esperados."
+          },
+          "response": []
+        },
+        {
+          "name": "Get_Articles_By_ID_fixed",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": 8614840,\r\n    \"title\": \"This is test.\",\r\n    \"body\": \"I'm about to create a new article using the token.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/291562",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "291562"
+              ]
+            },
+            "description": "Versión demostrativa: consulta un artículo por un ID fijo escrito directamente en la URL (sin variable), para comparar con la versión dinámica."
+          },
+          "response": []
+        },
+        {
+          "name": "Get_Article_By_Id_Variable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response has correct id\", function () {\r",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.environment.get(\"post_id\"));\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response has required fields\", function () {\r",
+                  "    pm.expect(pm.response.json()).to.have.all.keys('id', 'user_id', 'title', 'body');\r",
+                  "});\r",
+                  "\r",
+                  "\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}"
+              ]
+            },
+            "description": "Consulta un artículo usando `{{post_id}}`. Requiere token, porque GoRest exige autenticación para leer recursos recién creados o modificados."
+          },
+          "response": []
+        },
+        {
+          "name": "Create_Articles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct title and body\", function () {",
+                  "    pm.expect(pm.response.json().title).to.include(\"This is a\");",
+                  "    pm.expect(pm.response.json().body).to.include(\"En un lugar de la Mancha\");",
+                  "    });",
+                  "",
+                  "pm.test(\"Response contains a valid id\", function () {",
+                  "    pm.response.to.have.jsonBody('id');",
+                  "    pm.expect(pm.response.json().id).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.environment.set(\"post_id\", pm.response.json().id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": 8614835,\r\n    \"title\": \"This is a part of El Quijote.\",\r\n    \"body\": \"En un lugar de la Mancha, de cuyo nombre no quiero acordarme, no ha mucho tiempo que vivía un hidalgo de los de lanza en astillero, adarga antigua, rocín flaco y galgo corredor. Una olla de algo más vaca que carnero, salpicón las más noches, duelos y quebrantos los sábados, lantejas los viernes, algún palomino de añadidura los domingos, consumían las tres partes de su hacienda.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/posts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            },
+            "description": "Crea un nuevo artículo (POST). Guarda automáticamente el `id` devuelto en `post_id` para encadenar el resto del flujo."
+          },
+          "response": []
+        },
+        {
+          "name": "Update_Articles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);    \r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response has updated correctly both title and body\", function () {\r",
+                  "    pm.expect(pm.response.json().title).to.eql(\"This a new test.\");\r",
+                  "    pm.expect(pm.response.json().body).to.include(\"Text will\");\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response has correct id\", function () {\r",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.environment.get(\"post_id\"));\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"This a new test.\",\r\n    \"body\": \"Text will be here.\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}"
+              ]
+            },
+            "description": "Actualiza el artículo creado (`{{post_id}}`) vía PUT. Compara la respuesta contra `pm.request.body.raw` en vez de texto fijo, para que el test siga siendo válido sin importar el contenido enviado."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete_Article",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"This a new test.\",\r\n    \"body\": \"The text will be here.\"\r\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}"
+              ]
+            },
+            "description": "Borra el artículo (`{{post_id}}`). Verifica status 204."
+          },
+          "response": []
+        },
+        {
+          "name": "Get_Deleted_Article_By_Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {\r",
+                  "    pm.response.to.have.status(404);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response body contains 'Not Found'\", function () {\r",
+                  "    pm.expect(pm.response.text()).to.include('not found');\r",
+                  "});\r",
+                  "\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"This a new test.\",\r\n    \"body\": \"Texto aquí.\"\r\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/posts/{{post_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "{{post_id}}"
+              ]
+            },
+            "description": "Confirma que, tras el borrado, la API devuelve 404 — no asume el éxito solo por el 204 del DELETE."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get_All_Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response time is less than 2000ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Response array is not empty\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.length.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Each user has correct fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function (user) {",
+                  "        pm.expect(user).to.have.property('id');",
+                  "        pm.expect(user).to.have.property('name');",
+                  "        pm.expect(user).to.have.property('email');",
+                  "        pm.expect(user).to.have.property('gender');",
+                  "        pm.expect(user).to.have.property('status');",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.environment.set(\"user_id\", pm.response.json()[0].id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Devuelve todos los usuarios. Guarda el `id` del primer usuario del array en `user_id`, para reutilizarlo en el resto de requests de la carpeta."
+          },
+          "response": []
+        },
+        {
+          "name": "Get_User_By_Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response body is not empty\", function () {\r",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response body contains the correct user data\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.expect(jsonData).to.have.property('id');\r",
+                  "    pm.expect(jsonData).to.have.property('name');\r",
+                  "    pm.expect(jsonData).to.have.property('email');\r",
+                  "    pm.expect(jsonData).to.have.property('gender');\r",
+                  "    pm.expect(jsonData).to.have.property('status');\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"User ID matches the expected value\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.expect(jsonData.id).to.equal(pm.environment.get(\"user_id\"));\r",
+                  "});\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Consulta un usuario por `{{user_id}}`. Verifica que el `id` devuelto coincide con el solicitado, no solo que la respuesta \"tiene forma\" de usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "User_Not_Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "\r",
+                  "pm.test(\"Status code is 404\", function () {\r",
+                  "    pm.response.to.have.status(404);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response body contains 'Resource not found'\", function () {\r",
+                  "    pm.expect(pm.response.text()).to.include(\"Resource not found\");\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "999999"
+              ]
+            },
+            "description": "Test negativo: consulta un ID inexistente y verifica que la API responde 404 con el mensaje de error esperado."
+          },
+          "response": []
+        },
+        {
+          "name": "Get_Users_By_Gender",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"All results match requested gender\", function () {\r",
+                  "\tvar expectedGender = pm.request.url.query.get('gender');\r",
+                  "\tvar jsonData = pm.response.json();\r",
+                  "\tjsonData.forEach(function (user) {\r",
+                  "\t\tpm.expect(user.gender).to.eql(expectedGender);\r",
+                  "\t});\r",
+                  "});\r",
+                  "    \r",
+                  "pm.test(\"Response array is not empty\", function () {\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.expect(jsonData).to.have.length.above(0);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?gender={{gender}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "gender",
+                  "value": "{{gender}}"
+                }
+              ]
+            },
+            "description": "Filtra usuarios por género (`{{gender}}`). El test lee el valor esperado directamente de la URL de la request (`pm.request.url.query.get`), así que el mismo script sirve para `male` o `female` sin modificar código."
+          },
+          "response": []
+        },
+        {
+          "name": "Get_Users_By_Gender_And_Name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"All results match requested gender\", function () {\r",
+                  "\tvar expectedGender = pm.request.url.query.get('gender');\r",
+                  "\tvar jsonData = pm.response.json();\r",
+                  "\tjsonData.forEach(function (user) {\r",
+                  "\t\tpm.expect(user.gender).to.eql(expectedGender);\r",
+                  "\t});\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Response contains 10 results\", function () {\r",
+                  "\tvar jsonData = pm.response.json();\r",
+                  "\tpm.expect(jsonData.length).to.be.at.most(10);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"All names actually start with the requested letter\", function () {\r",
+                  "    var expectedLetter = pm.request.url.query.get('name');\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    jsonData.forEach(function (user) {\r",
+                  "        pm.expect(user.name.toUpperCase().startsWith(expectedLetter.toUpperCase())).to.be.true;\r",
+                  "    });\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?gender={{gender}}&{{letter}}&{{length}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "gender",
+                  "value": "{{gender}}"
+                },
+                {
+                  "key": "{{letter}}",
+                  "value": null
+                },
+                {
+                  "key": "{{length}}",
+                  "value": null
+                }
+              ]
+            },
+            "description": "Combina tres query params (`gender`, `name`, `per_page`). Incluye un test que demuestra que el filtrado por `name` en GoRest es por coincidencia parcial, no por prefijo — el test falla intencionadamente para dejar constancia de ello."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Articles_Dynamic",
+      "item": [
+        {
+          "name": "Create_Articles_Dynamic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct title and body\", function () {",
+                  "    var requestBody = JSON.parse(pm.request.body.raw);",
+                  "    pm.expect(pm.response.json().title).to.eql(requestBody.title);",
+                  "    pm.expect(pm.response.json().body).to.eql(requestBody.body);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains a valid id\", function () {",
+                  "    pm.response.to.have.jsonBody('id');",
+                  "    pm.expect(pm.response.json().id).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.environment.set(\"dynamic_post_id\", pm.response.json().id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.sendRequest({ url: \r",
+                  "pm.environment.get(\"base_url\") + \"/users\", method: 'GET', header: { \r",
+                  "    Authorization: 'Bearer ' + pm.environment.get('token') \r",
+                  "    } \r",
+                  "    }, \r",
+                  "    function (err, res) { \r",
+                  "        if (err) { console.log(err); } \r",
+                  "        else { var users = res.json(); \r",
+                  "        var randomUser = users[Math.floor(Math.random() * users.length)]; \r",
+                  "        pm.environment.set(\"dynamic_user_id\", randomUser.id); \r",
+                  "        } \r",
+                  "        })"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"user_id\": \"{{dynamic_user_id}}\",\r\n    \"title\": \"{{$randomCatchPhrase}}\",\r\n    \"body\": \"{{$randomLoremParagraph}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/posts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts"
+              ]
+            },
+            "description": "Versión avanzada de `Create_Article`, con datos completamente dinámicos: obtiene un `user_id` real vía `pm.sendRequest()` a `GET /users` en el Pre-request, y genera `title`/`body` aleatorios con variables nativas de Postman. Aislada en su propia carpeta para no afectar al flujo principal ni al Collection Runner."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "random_title",
+      "value": ""
+    },
+    {
+      "key": "random_body",
+      "value": ""
+    }
+  ]
+}
